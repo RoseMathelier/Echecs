@@ -1,0 +1,101 @@
+Ce programme comprend l'ensemble des fonctionnalités serveur nécessaires à la programmation d'un jeu d'échec en ligne, en mode blitz et avec brouillard de guerre (à l'exception des services d'inscription/authentification).
+
+
+Le programme s'appuie sur une base de données dont la structure est la suivante :
+- id
+- nom = nom de la partie
+- tour = numéro du tour
+- trait = 1 si c'est au tour des blancs, 2 si c'est au tour des noirs
+- j1 = nom du joueur 1
+- j2 = nom du joueur 2
+- histo_j1 = tableau contenant l'ensemble des json reçus par le joueur 1 au cours de la partie
+- histo_j2 = tableau contenant l'ensemble des json reçus par le joueur 2 au cours de la partie
+- plateau = tableau représentant l'état actuel du plateau : une case vide contient "" et une case occupée contient [X,couleur] avec X la lettre correspondant à la pièce et couleur = 1 pour les blancs et 2 pour les noirs
+- pieces_prises = tableau contenant les pièces prises depuis le début
+- etat_partie = 'en cours', 'abandon_j1' (ou j2) ou 'victoire_j1' (ou j2)
+
+
+Le code se divise de la façon suivante :
+- init_db.php : une version minimale de nouvellePartie.php (non inclus dans le sujet EF51), permettant d'initialiser une table "partie" dans la base de données :
+	- le plateau est en position initiale
+	- l'historique des blancs contient les coups possibles au premier tour
+	- l'historique des noirs est vide
+- cr.json.php : récupère dans la base de données un compte rendu de la partie en cours, et renvoie l'historique du joueur qui fait la requête.
+- maj.json.php : gère l'arbitrage suite au coup d'un joueur.
+
+maj.json.php récupère les informations dans la BDD grâce aux paramètres passés en get, en particulier le coup effectué par le joueur, gère l'arbitrage, effectue la mise à jour de la BDD (plateau, historiques, incrémentation du tour et du trait) pour faire avancer la partie, et renvoie un json "je_joue" au joueur qui vient de jouer et un json "il_joue" au joueur adverse.
+La structure d'un coup est la suivante : [i1, j1, i2, j2, "option"] avec (i1, j1) la position initiale, (i2, j2) la position finale, et "option" = pp pour une prise en passant, roque ou X = C, F, T, D pour une promotion.
+
+
+La gestion de l'arbitrage fait appel à 4 autres scripts php :
+
+- fonctions_echecs.php contient les fonctions auxiliaires utilisées dans tout le script.
+	- result_db(db, request) : 
+		entrée : db = lien de connexion à la BDD
+			 request = string contenant la requête
+		sortie : résultat de la requête sous forme de tableau associatif
+	- deplacer_piece(plateau, coup) :
+		entrée : plateau = etat du plateau récupéré dans la BDD
+			 coup = coup joué sous la forme [i1, j1, i2, j2, "piece"]
+		sortie : plateau après déplacement de la pièce
+	- case_existe(i, j) :
+		entrée : i = ligne et j = colonne de la case qu'on veut tester
+		sortie : true si la case existe, faut si elle n'existe pas (index en dehors du plateau)
+	- case_contenu(plateau, i, j, trait) :
+		entrée : plateau = etat actuel du plateau
+			 i et j = coordonnées de la case dont on veut connaître le contenu
+			 trait = 1 si c'est au tour des blancs, 2 si c'est au tour des noirs
+		sortie : "vide" si la case est vide, "alliee" si elle contient une pièce correspondant au trait et "ennemie" sinon
+	- plateau_visible(plateau, vues_adv, coups_possibles, trait):
+		entrée : plateau = etat actuel du plateau
+			 coups_possibles = coups possibles ensuite pour l'adversaire (calculés avec la fonction calcul_coups)
+			 vues_adv = cases visibles pour l'adversaires sans coup possibles (calculées dans calcul_coups et calcul_menaces)
+			 trait = 1 si c'est au tour des blancs, 2 si c'est au tour des noirs
+		sortie : tableau du jeu avec true si la case est visible et false sinon
+	- test_visibilite(coup, plateau_visible):
+		entrée : coup = le coup joué
+			 plateau_visible = sortie de la fonction précédente
+		sortie : le coup traduit pour le joueur adverse en fonction du brouillard de guerre : les cases invisibles sont remplacées par (0,0)
+
+- vues.php réalise la gestion des vues du joueur ayant le trait suite à un coup.
+	Fonction principale : calcul_vues
+	Fonctions secondaires : vues_pion, vues_cavalier, vues_tour, vues_fou, vues_dame, vues_roi
+	Fonctions auxiliaires : case_vue, longues_vues
+La fonction calcul_vues(plateau, coup, trait) récupère la nature de la pièce déplacée et appelle la fonction secondaire correspondant.
+La fonction secondaire calcule les vues correspondant à cette pièce en faisant appel aux fonctions auxiliaires :
+	- case_vue(plateau, i, j, trait) met en forme la vue de la case
+	- longues_vues(plateau, i, j, di, dj, trait) gère les vues des pièces effectuant des longs déplacements (tour, fou, dame)
+
+- coups_possibles.php réalise la gestion des vues du joueur ayant le trait suite à un coup.
+	Fonction principale : calcul_coups
+	Fonctions secondaires : coups_pion, coups_cavalier, coups_tour, coups_fou, coups_dame, coups_roi
+	Fonctions auxiliaires : case_coup, longs_coups
+La fonction calcul_coups(plateau, trait) parcours le plateau, récupère la nature chaque pièce et appelle la fonction secondaire correspondant.
+La fonction secondaire calcule les coups correspondant à cette pièce en faisant appel aux fonctions auxiliaires :
+	- case_coup(plateau, i1, j1, i2, j2, trait) met en forme le coup possible pour une case
+	- longs_coups(plateau, i, j, di, dj, trait) gère les coups des pièces effectuant des longs déplacements (tour, fou, dame)
+
+- menaces.php réalise la gestion des vues du joueur ayant le trait suite à un coup.
+	Fonction principale : calcul_menaces
+	Fonctions secondaires : menaces_pion, menaces_cavalier, menaces_tour, menaces_fou, menaces_dame, menaces_roi
+	Fonctions auxiliaires : case_menace, longues_menaces
+La fonction calcul_menaces(plateau, trait) parcours le plateau, récupère la nature chaque pièce et appelle la fonction secondaire correspondant.
+La fonction secondaire calcule les coups correspondant à cette pièce en faisant appel aux fonctions auxiliaires :
+	- case_coup(plateau, i1, j1, i2, j2, trait) met en forme la menace pour une case
+	- longs_coups(plateau, i, j, di, dj, trait) gère les menaces des pièces effectuant des longs déplacements (tour, fou, dame)
+
+
+Sortie :
+Si le paramètre optionnel "coup" existe, alors le joueur vient de jouer un coup : on lui renvoie alors le json suivant:
+- "je_joue" = le coup effectué sous la forme [i1, j1, i2, j2, "option"]
+- "vues" = les cases visibles grâce à ce nouveau coup sous la forme [i, j] ou [i, j, "nature"] si une pièce est présente sur la case
+Si le paramètre optionnel "coup" n'existe pas, alors le joueur adverse vient de jouer un coup : on lui renvoie le json suivant :
+- "nature" = la nature de la pièce jouée si elle n'est pas dans le brouillard de guerre
+- "il_joue" = le coup effectué (on met des 0 si la case de départ et/ou d'arrivée est dans le brouillard)
+- "coups_possibles" = tableau contenant les coups possibles
+- "vues" = tableau contenant les cases visibles sans qu'aucun coup n'y soit possible, soit les cases menaçantes et les pièces ennemies bloquant un pion
+
+
+L'ensemble du programme permet une gestion du début de partie, de la succession des coups y compris des promotions, et de la fin de partie par abandon ou par victoire en mode blitz (pas d'échec au roi, d'échec et mat ou de pat, la partie s'arrête quand le roi est mangé).
+
+Les coups particuliers tels que le roque et la prise en passant n'ont pas encore été implémentés (ou seulement sous forme d'ébauche). Toutefois, le code a été conçu pour faciliter leur inclusion ultérieure pour le déplacement d'une pièce ainsi que dans la gestion des vues, des coups et des menaces.

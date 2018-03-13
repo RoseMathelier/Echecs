@@ -1,0 +1,18 @@
+Utilisation du programme :
+
+Il est essentiel au préalable de disposer d'une base de donnée "echec" MySQL (en local).
+Il faut en premier lieu lancer une fois le programme init_db.php afin d'initialiser la BDD.
+
+Le client envoie ensuite, dans l'ordre, les requêtes suivantes :
+JOUEUR BLANC : cr.json.php?partie=1&cote=1 
+=> choisir le numéro correspond au coup que l'on souhaite effectuer parmi la liste des coups possibles
+JOUEUR BLANC : maj.json.php?partie=1&tour=1&trait=1&cote=1&coup=2 (on a choisi le 2ème coup de la liste)
+=> le serveur renvoie le coup effectué et les nouvelles cases que le client peut voir
+JOUEUR NOIR : maj.json.php?partie=1&tour=1&trait=2&cote=2
+=> le serveur renvoie le coup effectué par l'adversaire (en fonction du brouillard de guerre, les coups possibles et les cases visibles sans qu'un coup n'y soit possibles. 
+=> choisir le numéro correspondant au coup que l'on souhaite effectuer.
+JOUEUR NOIR : maj.json.php?partie=1&tour=1&trait=2&cote=2&coup=3 (on a choisi le 3ème coup)
+
+...
+
+On continue comme ça en prenant garde de changer le trait et le cote en fonction du joueur, et d'incrémenter le tour quand c'est nécessaire.

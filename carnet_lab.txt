@@ -1,0 +1,27 @@
+Carnet de laboratoire :
+
+1ère session : prise en main du sujet, compréhension de l'enchaînement du programme et du contenu des sorties json, familiarisation avec les règles de base du jeu d'échecs : déplacements, conditions de la fin de la partie, spécificité du mode blitz.
+
+2ème session : mise en place de la structure de la table parties, création de la base de donnée. Début du code : récupération des paramètres, connexion à la base de données et récupération des données, et premières vérifications.
+
+3ème session : gestion du déplacement d'une pièce en fonction du coup effectué (uniquement pour un déplacement ordinaire, pas de coups particuliers), début de réflexion sur les coups particuliers (recherche des règles spécifiques concernant ces coups).
+
+4ème session : structuration du code de maj.json.php : création des scripts vues.php (gestion des nouvelles vues du joueur trait suite au coup qui vient d'être joué), coups_possibles.php (calcul des coups possibles pour le joueur adverse après le coup) et structuration interne de ces deux scripts : création de sous-fonctions correspondant à chaque pièce. Création d'un script fonctions_echecs.php pour les fonctions auxiliaires.
+
+5ème session : gestion des vues du joueur venant de jouer (fonction générale de vues.php et fonctions auxiliaires selon les pièces), utilisation d'une fonction case_vue pour mettre en forme le tableau "vue" retourné, et d'une fonction longues_vues qui gère les vues "longues (tour, fou, dame) + ajout de deux fonctions auxiliaires utilisées dans tout le code : case_existe qui teste si l'index (i,j) d'une case est valide, et case_contenu, qui renvoie "vide", "alliee" ou "ennemie" en fonction du contenu de la case.
+
+6ème session : construction des sorties json du joueur trait et du joueur adverse : nécessité de gérer le brouillard de guerre par la suite. Ecriture de la requête update pour mettre à jour la base de données une fois l'arbitrage effectué.
+
+7ème session : gestion des coups possibles sur le même modèle que la gestion des vues (une fonction principale, deux fonctions secondaires et une fonction case_coup et une fonction longs_coups). Le principe est le même sauf que cette fois on parcours tout le plateau et on calcule les coups possibles dès qu'on tombe sur une pièce alliée.
+
+8ème session : écriture du script cr.json.php qui renvoie l'intégralité de l'historique du joueur qui le demande. Pas de difficulté majeure.
+
+9ème session : réflexion autour du brouillard de guerre et des vues du joueur adverse => création d'un script menaces.php semblable à coups_possibles.php sauf qu'on calcule cette fois les cases ennemies qui représentent une menace pour le joueur : il faut cette information car ces cases qui le menacent font parties des cases visibles pour lui mais sur lesquelles il ne peut pas effectuer de coup, donc il faut les inclure dans ses vues. Légère modification de coups_possibles.php qui, en plus de calculer les coups possibles, renvoie aussi un tableau de vues contenant les cases ennemies qui empêchent un pion d'avancer. On fusionne ensuite ces deux tableaux (vues et menaces) pour obtenir le tableau de vues définitif.
+
+10ème session : mise en place de deux fonctions : plateau_visible qui génère un tableau constitué de true et de false, schématisant l'échiquier, les cases true étant celles que le joueur adverse peut voir ; et test_visibilite qui permet de tester si une case est visible pour le joueur, à partir du tableau créé par plateau_visible. Cela permet de "traduire" le coup joué pour l'adversaire, et de le dissimuler derrière des (0,0) s'il est dans le brouillard de guerre.
+
+11ème session : debug des problèmes liés au format json : insertion incorrecte dans la BDD qui rendait impossible de décoder les json, due à un problème de confusion de quotes ' et " dans la requête, + oublis de json_encode/decode à plusieurs endroits et récupération correcte des informations => problèmes corrigés.
+
+12ème session : debug de problèmes de syntaxes à divers endroits du code + gestion des problèmes d'index (tableau de 0 à 7 vs plateau d'échec numéroté de 1 à 8 pour le client) + correction confusion entre i et j : décision d'utiliser i comme n° de ligne et j comme n° de colonne car c'est plus lisible pour lire le plateau dans la base de donnée vu que je ne dispose pas d'interface client pour vérifier que tout se passe comme prévu suite à un coup.
+
+13ème session : gestion de la fin de partie (par abandon ou victoire par roi mangé) et des promotions, rédaction des documentations utilisateur, programmeur et installation, dernières vérification et rendu.
